@@ -3,6 +3,7 @@ from benmaier_reactionDiffusion.gray_scott_static import get_initial_A_and_B
 from benmaier_reactionDiffusion.gray_scott_static import update
 import matplotlib.pyplot as pl
 import numpy as np
+import random
 
 
 # modified from benmaier for drawing multiple pairs
@@ -83,6 +84,37 @@ def defaultDependancyChromosome():
     }                             \
 
 
+def randomChromosome(N):
+    chromosome = defaultChromosome()
+    
+    for geneName in chromosome:
+        gene = chromosome[geneName]
+        
+        # 50%   - this gene has no dependancies
+        # 25%   - this gene has 1 dependancy
+        # 12.5% - this gene has 2 depenancies ...
+        for i in range(N-1):
+            if random.random() < 0.5:
+                break
+            # to reduce headaches, any gene with a dependancy automatically has only that dependancy
+            gene["-"] = 0 
+            
+            # 80% - this dependancy is on A
+            # 20% - this dependancy is on B
+            dependancy  = "A" if random.random() < 0.8 else "B"
+            dependancy += str(random.randint(0, N-1))
+            amt = random.random()*0.1
+            
+            gene[dependancy] = amt
+    return chromosome
+
+
+def randomGenome(N):
+    genome = [defaultChromosome()]
+    for i in range(N):
+        genome.append(randomChromosome(N))
+    return genome
+
 
 # if a key is "-" then it codes for just a scalar, not a dependancy coefficient
 def decode(gene, morphogens): 
@@ -108,10 +140,10 @@ def simulate(genome, gridSize=200, N_simulation_steps=1000, delta_t=1.0):
         DAValues = []
         DBValues = []
         for chromosome in genome:
-            fValues.append(decode(gene["f"], morphogens))
-            kValues.append(decode(gene["k"], morphogens))
-            DAValues.append(decode(gene["DA"], morphogens))
-            DBValues.append(decode(gene["DB"], morphogens))
+            fValues.append(decode(chromosome["f"], morphogens))
+            kValues.append(decode(chromosome["k"], morphogens))
+            DAValues.append(decode(chromosome["DA"], morphogens))
+            DBValues.append(decode(chromosome["DB"], morphogens))
         
         
         for morphogen, f, k, DA, DB in zip(morphogens, fValues, kValues, DAValues, DBValues):
@@ -124,11 +156,17 @@ def simulate(genome, gridSize=200, N_simulation_steps=1000, delta_t=1.0):
     pl.show()
     return morphogens
  
- 
+
 if __name__=="__main__":
-    genome =                \
-    [                       \
-        defaultGeneSet(),   \
-        defaultDependancyGeneSet() \
-    ]
+    #genome =                \
+    #[                       \
+        #defaultGeneSet(),   \
+        #defaultDependancyGeneSet() \
+    #]
+    #simulate(genome)
+    import pprint
+    pp = pprint.PrettyPrinter(indent=4)
+    
+    genome = randomGenome(4)
+    pp.pprint(genome)
     simulate(genome)
