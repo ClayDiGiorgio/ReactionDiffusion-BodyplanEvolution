@@ -1,3 +1,28 @@
+###
+# TODO List
+###
+# - add a field in the chromosome saying which index of 
+#   morphogen it codes for.
+#       * Right now, a haploid genome always codes for morphogens 0 to N-1
+#         they can't skip morphogen 2, for example
+# - add some way to linearize each chromosome
+# - support reproduction between two diploid genomes, including crossover
+#   and chromosome duplication / deletion
+# - add cell differentiation
+#       * Based on the levels of particular morphogens, each x, y location will be assigned a cell type
+#       * This includes:
+#            + muscle
+#            + bone
+#            + filler tissue
+#            + not a cell (counts as empty space)
+# - add motion simulation
+#       * A very low-tech fluid simulation
+#       * assumes water molecules don't move in space
+#       * applies force to creature based on how many gridpoints it hits between shape changes and what direction those points were hit from
+#       * changes creature's shape by contracting muscle cells
+#            + I'm not totally sure how to compute the creature's new shape yet, but I'm thinking of using something like photoshop's distort tool
+#            + I also have no idea how or when the creature's muscles will activate either
+
 #from benmaier_reactionDiffusion.gray_scott_static import draw
 from benmaier_reactionDiffusion.gray_scott_static import get_initial_A_and_B
 from benmaier_reactionDiffusion.gray_scott_static import update
