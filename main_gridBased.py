@@ -1,6 +1,7 @@
 ###
 # TODO List
 ###
+# - add diploid stuff
 # - add a field in the chromosome saying which index of 
 #   morphogen it codes for.
 #       * Right now, a haploid genome always codes for morphogens 0 to N-1
@@ -154,14 +155,14 @@ def decode(gene, morphogens):
     return result
 
 
-def __simulationStep(genome, morphogens, delta_t):
+def __simulationStep(chromosomes, morphogens, delta_t, gridSize):
     newMorphogens = []
     # calculate parameters (important for dependancies)
     fValues = []
     kValues = []
     DAValues = []
     DBValues = []
-    for chromosome in genome:
+    for chromosome in chromosomes:
         fValues.append(decode(chromosome["f"], morphogens))
         kValues.append(decode(chromosome["k"], morphogens))
         DAValues.append(decode(chromosome["DA"], morphogens))
@@ -171,17 +172,24 @@ def __simulationStep(genome, morphogens, delta_t):
     for morphogen, f, k, DA, DB in zip(morphogens, fValues, kValues, DAValues, DBValues):
         newMorphogens.append(tuple(update(*morphogen, DA, DB, f, k, delta_t)))
     
+    # in case the given set of chromosomes don't cover every morphogen
+    for i in range(len(morphogens) - len(newMorphogens)):
+        newMorphogens.append(np.zeros((gridSize,gridSize)))
+    
     return newMorphogens
     
-
-  
-def simulate(genome, gridSize=200, N_simulation_steps=1000, delta_t=1.0):
+    
+def simulate(chromosomesF, chromosomesM, gridSize=200, N_simulation_steps=1000, delta_t=1.0):
     N = gridSize
-    morphogens = [np.asarray(get_initial_A_and_B(N)) for i in range(len(genome))]
+    numChromosomes = max(len(chromosomesF), len(chromosomesM))
+    morphogens = [np.asarray(get_initial_A_and_B(N)) for i in range(numChromosomes)]
     
     for step in range(N_simulation_steps):
-        morphogens = __simulationStep(genome, morphogens, delta_t)
-            
+        morphogensF = __simulationStep(chromosomesF, morphogens, delta_t, gridSize)
+        morphogensM = __simulationStep(chromosomesM, morphogens, delta_t, gridSize)
+        
+        morphogens = [0.5*np.asarray(f) + 0.5*np.asarray(m) for f, m in zip(morphogensF, morphogensM)]
+    
     draw( morphogens )
 
     # show the result
@@ -196,9 +204,15 @@ if __name__=="__main__":
         #defaultDependancyGeneSet() \
     #]
     #simulate(genome)
+    
+    
     import pprint
     pp = pprint.PrettyPrinter(indent=4)
     
-    genome = randomGenome(4)
-    pp.pprint(genome)
-    simulate(genome)
+    chromosomesF = randomGenome(4)
+    chromosomesM = randomGenome(4)
+    
+    pp.pprint(chromosomesF)
+    pp.pprint(chromosomesM)
+    
+    simulate(chromosomesF, chromosomesM)
