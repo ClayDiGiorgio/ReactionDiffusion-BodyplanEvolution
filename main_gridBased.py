@@ -2,6 +2,9 @@
 # TODO List
 ###
 # ☒ add diploid stuff
+# ☐ fix animation
+#       * something's broken with the animation, and I'm not really sure what
+#       * I think it has to do with imgs.set_array
 # ☐ add a field in the chromosome saying which index of 
 #   morphogen it codes for.
 #       * Right now, a haploid genome always codes for morphogens 0 to N-1
@@ -24,30 +27,38 @@
 #            + I'm not totally sure how to compute the creature's new shape yet, but I'm thinking of using something like photoshop's distort tool
 #            + I also have no idea how or when the creature's muscles will activate either
 
-#from benmaier_reactionDiffusion.gray_scott_static import draw
+#from benmaier
 from benmaier_reactionDiffusion.gray_scott_static import get_initial_A_and_B
 from benmaier_reactionDiffusion.gray_scott_static import update
 import matplotlib.pyplot as pl
 import numpy as np
 import random
 
+# animation imports from benmaier
+import matplotlib.animation as animation
+from matplotlib.colors import Normalize
+
 
 # modified from benmaier for drawing multiple pairs
 def draw(pairs):
     """return the matplotlib artists for animation"""
+    imgs = []
+    
     i = 0
     # create one row per pair, where each row has 2 columns
     fig, ax = pl.subplots(len(pairs),2,figsize=(5.65,3), squeeze=False)
     for A, B in pairs:
         imA = ax[i][0].imshow(A, animated=True,vmin=0,cmap='Greys')
         imB = ax[i][1].imshow(B, animated=True,vmax=1,cmap='Greys')
+        imgs.append([imA, imB])
+        
         ax[i][0].axis('off')
         ax[i][1].axis('off')
         ax[i][0].set_title('A'+str(i))
         ax[i][1].set_title('B'+str(i))
         i += 1
 
-    return fig, imA, imB
+    return fig, imgs
 
 
 # modified from benmaier
@@ -137,7 +148,7 @@ def randomChromosome(N):
 
 def randomGenome(N):
     genome = [defaultChromosome()]
-    for i in range(N):
+    for i in range(N-1):
         genome.append(randomChromosome(N))
     return genome
 
@@ -180,22 +191,81 @@ def __simulationStep(chromosomes, morphogens, delta_t, gridSize):
     
     
 def simulate(chromosomesF, chromosomesM, gridSize=200, N_simulation_steps=1000, delta_t=1.0):
-    N = gridSize
     numChromosomes = max(len(chromosomesF), len(chromosomesM))
-    morphogens = [np.asarray(get_initial_A_and_B(N)) for i in range(numChromosomes)]
+    morphogens = [np.asarray(get_initial_A_and_B(gridSize)) for i in range(numChromosomes)]
     
-    for step in range(N_simulation_steps):
-        morphogensF = __simulationStep(chromosomesF, morphogens, delta_t, gridSize)
-        morphogensM = __simulationStep(chromosomesM, morphogens, delta_t, gridSize)
-        
-        morphogens = [0.5*np.asarray(f) + 0.5*np.asarray(m) for f, m in zip(morphogensF, morphogensM)]
+    morphogens = __computeSimulation(morphogens, chromosomesF, chromosomesM, delta_t, gridSize, N_simulation_steps)
     
     draw( morphogens )
 
     # show the result
     pl.show()
     return morphogens
+
+
+def __computeSimulation(morphogens, chromosomesF, chromosomesM, delta_t, gridSize, N_simulation_steps):
+    for step in range(N_simulation_steps):
+        morphogensF = __simulationStep(chromosomesF, morphogens, delta_t, gridSize)
+        morphogensM = __simulationStep(chromosomesM, morphogens, delta_t, gridSize)
+        
+        morphogens = [0.5*np.asarray(f) + 0.5*np.asarray(m) for f, m in zip(morphogensF, morphogensM)]
+    return morphogens
+    
  
+# modified from benmaier for multiple pairs
+def updatefig(frame_id, *args):
+    """Takes care of the matplotlib-artist update in the animation"""
+    #print(*args)
+    
+    imgs = args[0]
+    simulationArgs = args[1:]
+    morphogens = __computeSimulation(*simulationArgs)
+    #args[1] = morphogens
+    for i in range(len(args[1])):
+        args[1][i] = morphogens[i]
+
+    #print(str(frame_id) + " ==========*************=============")
+
+    for i in range(len(morphogens)):
+        A = morphogens[i][0]
+        B = morphogens[i][1]
+        #print(A.shape)
+        #print(A)
+        #print("-==--=-=-=-=-=-=-=-=-=-")
+        
+        # update the frame
+        imgs[i][0].set_array(A)
+        imgs[i][1].set_array(B)
+        
+        # renormalize the colors
+        imgs[i][0].set_norm(Normalize(vmin=np.amin(A),vmax=np.amax(A)))
+        imgs[i][1].set_norm(Normalize(vmin=np.amin(B),vmax=np.amax(B)))
+        
+    # return the updated matplotlib objects
+    return (i for pair in imgs for i in pair)
+
+
+# modified from benmaier 
+def animate(chromosomesF, chromosomesM, gridSize=200, updates_per_frame=10, delta_t=1.0):
+    numChromosomes = max(len(chromosomesF), len(chromosomesM))
+    morphogens = [np.asarray(get_initial_A_and_B(gridSize)) for i in range(numChromosomes)]
+    
+    
+    fig, imgs = draw(morphogens)
+    # these are the arguments which have to passed to the update function
+    animation_arguments = (imgs, morphogens, chromosomesF, chromosomesM, delta_t, gridSize, updates_per_frame)
+
+    # start the animation
+    ani = animation.FuncAnimation(fig, #matplotlib figure
+                                  updatefig, # function that takes care of the update
+                                  fargs=animation_arguments, # arguments to pass to this function
+                                  interval=1, # update every `interval` milliseconds
+                                  blit=True, # optimize the drawing update 
+                                 )
+
+    # show the animation
+    pl.show()
+
 
 if __name__=="__main__":
     #genome =                \
@@ -215,4 +285,5 @@ if __name__=="__main__":
     pp.pprint(chromosomesF)
     pp.pprint(chromosomesM)
     
-    simulate(chromosomesF, chromosomesM)
+    #simulate(chromosomesF, chromosomesM)
+    animate(chromosomesF, chromosomesM)

@@ -1,4 +1,7 @@
-pairs = [(1, 2), (3, 4)]
 
-for A, B in pairs:
-    print(str(A) + " -> " + str(B))
+
+a = ([123], 2)
+
+a[0][0] = 1
+
+print (a)
