@@ -2,9 +2,16 @@
 # TODO List
 ###
 # ☒ add diploid stuff
-# ☐ fix animation
+# ☒ fix animation
 #       * something's broken with the animation, and I'm not really sure what
 #       * I think it has to do with imgs.set_array
+#       *
+#       * fixed the above stuff
+#       *
+#       * now it doesn't ever load up, and seems to be computing NaNs
+#       * I think it has to do with how I'm saving the results of the computation
+#       *
+#       * Nope! It was just trying to compute too much too quickly
 # ☐ add a field in the chromosome saying which index of 
 #   morphogen it codes for.
 #       * Right now, a haploid genome always codes for morphogens 0 to N-1
@@ -246,7 +253,11 @@ def updatefig(frame_id, *args):
 
 
 # modified from benmaier 
-def animate(chromosomesF, chromosomesM, gridSize=200, updates_per_frame=10, delta_t=1.0):
+#
+# NOTE: don't set `updates_per_frame` too high or `millisecons_per_frame` too low (compared to eachother)
+# or the animation won't run
+#
+def animate(chromosomesF, chromosomesM, gridSize=200, updates_per_frame=1, millisecons_per_frame=50 delta_t=1.0):
     numChromosomes = max(len(chromosomesF), len(chromosomesM))
     morphogens = [np.asarray(get_initial_A_and_B(gridSize)) for i in range(numChromosomes)]
     
@@ -259,7 +270,7 @@ def animate(chromosomesF, chromosomesM, gridSize=200, updates_per_frame=10, delt
     ani = animation.FuncAnimation(fig, #matplotlib figure
                                   updatefig, # function that takes care of the update
                                   fargs=animation_arguments, # arguments to pass to this function
-                                  interval=1, # update every `interval` milliseconds
+                                  interval=millisecons_per_frame, # update every `interval` milliseconds
                                   blit=True, # optimize the drawing update 
                                  )
 
